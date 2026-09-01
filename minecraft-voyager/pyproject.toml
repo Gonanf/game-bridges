@@ -1,0 +1,7 @@
+[project]
+name = "minecraft-voyager"
+version = "0.1.0"
+description = "minecraft-voyager harness via Kateto Event Bus"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = ["httpx>=0.28.1"]

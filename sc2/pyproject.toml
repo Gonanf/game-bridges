@@ -1,0 +1,7 @@
+[project]
+name = "sc2"
+version = "0.1.0"
+description = "sc2 harness via Kateto Event Bus"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = ["httpx>=0.28.1"]

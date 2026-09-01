@@ -1,0 +1,7 @@
+[project]
+name = "pokeai"
+version = "0.1.0"
+description = "pokeai harness via Kateto Event Bus"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = ["httpx>=0.28.1"]
