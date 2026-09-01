@@ -14,11 +14,28 @@ async def post(voice, text, phase="argument", rms=0.2, role=None, event_type="ga
     except Exception as e:
         print(f"[bridge {voice}] {text[:60]} ({e})", flush=True)
 
+async def get_state():
+    # Leemos el historial del bridge para que los agentes tengan contexto de otros agentes
+    try:
+        async with httpx.AsyncClient(timeout=5) as c:
+            r = await c.get(f"{BRIDGE}/api/game/state", params={"game":"werewolf"})
+            if r.status_code == 200:
+                return r.json()
+    except:
+        pass
+    return {}
+
 async def round_day(players, alive):
+    state = await get_state()
+    history = state.get("history") or state.get("by_game",{}).get("werewolf",{}).get("history") or []
+    last_speeches = [ev for ev in history[-10:] if ev.get("event_type") == "speech"]
+    
     for idx in [i for i,p in enumerate(players) if p["alive"]]:
         v=players[idx]
+        # El agente puede ver los últimos speeches de otros
+        context = "; ".join([ev.get("text","")[:50] for ev in last_speeches[-3:]])
         lines = random.choice([f"Soy {v['name']} ({v['role']}), sospecho de {random.choice(NAMES)} porque dudó.",f"Como {v['role']}, vi que {random.choice(NAMES)} actuó raro anoche.",f"Propongo votar a {random.choice(NAMES)}, su argumento no cierra."])
-        await post(v["voice"], lines, phase="argument", role=v["role"], event_type="speech", state={"alive":[p["name"] for p in players if p["alive"]]})
+        await post(v["voice"], lines, phase="argument", role=v["role"], event_type="speech", state={"alive":[p["name"] for p in players if p["alive"]], "context": context[:200]})
         await asyncio.sleep(0.2)
         if random.random()<0.1:
             candidates=[i for i,p in enumerate(players) if p["alive"] and p["voice"]!=v["voice"]]
@@ -38,7 +55,8 @@ async def round_day(players, alive):
 
 async def game(mock=False):
     players=[{"name":NAMES[i],"voice":VOICES[i],"role":ROLES[i],"alive":True} for i in range(7)]
-    await post("conquest","Juez: inicia partida Werewolf 7 jugadores. 2 lobos, 1 vidente.", phase="opening", rms=0.25)
+    await post("conquest","Modo Juego: werewolf – 7 jugadores. 2 lobos, 1 vidente.", rms=0.2, phase="opening",
+               event_type="game_start", state={"game":"werewolf","profile":"werewolf-arena","system_prompt":"Eres un agente de Werewolf con courtroom. 7 voces: Jane, Doktor, Conquest, Whisper. Mecánica: debate diario, voto, eliminación, lobos matan de noche. Herramientas: mempalace_query/mempalace_append/web_search."})
     await asyncio.sleep(0.3)
     were=[i for i,p in enumerate(players) if p["role"]=="werewolf"]
     victim=random.choice([i for i,p in enumerate(players) if p["alive"] and p["role"]!="werewolf"])
