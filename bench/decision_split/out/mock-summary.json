@@ -1,0 +1,98 @@
+{
+  "config": {
+    "seeds": [
+      1,
+      2,
+      3
+    ],
+    "ticks": 60,
+    "tick_ms": 500,
+    "small_model": "MiniCPM5-1B",
+    "big_model": "Sharp-MiniCPM5-2B",
+    "mock": true,
+    "big_every": 10,
+    "grammar": true,
+    "note": ""
+  },
+  "per_seed": {
+    "1": {
+      "decisions": 60,
+      "p50_ms": 0.2010685034794733,
+      "p95_ms": 0.20183442025445403,
+      "max_ms": 0.20241200905293227,
+      "cold_ms": 0.20241200905293227,
+      "p95_warm_ms": 0.20167829566635193,
+      "invalid_rate": 0.0,
+      "tick_compliance": true,
+      "big": {
+        "n": 6,
+        "hallucinated": 0,
+        "rate": 0.0,
+        "unparseable": 0,
+        "p50_ms": 0.5026860070647672,
+        "p95_ms": 0.5030320079531521
+      }
+    },
+    "2": {
+      "decisions": 60,
+      "p50_ms": 0.2008375063771382,
+      "p95_ms": 0.20156993337441237,
+      "max_ms": 0.20256698695011438,
+      "cold_ms": 0.20256698695011438,
+      "p95_warm_ms": 0.20149739789776505,
+      "invalid_rate": 0.0,
+      "tick_compliance": true,
+      "big": {
+        "n": 6,
+        "hallucinated": 0,
+        "rate": 0.0,
+        "unparseable": 0,
+        "p50_ms": 0.5016399862943217,
+        "p95_ms": 0.5026767665985972
+      }
+    },
+    "3": {
+      "decisions": 60,
+      "p50_ms": 0.20151699350681157,
+      "p95_ms": 0.20202267401618884,
+      "max_ms": 0.20787299359217287,
+      "cold_ms": 0.20225100666284562,
+      "p95_warm_ms": 0.20198332127183677,
+      "invalid_rate": 0.0,
+      "tick_compliance": true,
+      "big": {
+        "n": 6,
+        "hallucinated": 0,
+        "rate": 0.0,
+        "unparseable": 0,
+        "p50_ms": 0.5029770017135888,
+        "p95_ms": 0.5032880052458495
+      }
+    }
+  },
+  "pooled": {
+    "decisions": 180,
+    "p50_ms": 0.20113948772195728,
+    "p95_ms": 0.20198167108464987,
+    "max_ms": 0.20787299359217287,
+    "cold_ms": 0.20241200905293227,
+    "p95_warm_ms": 0.20196291657630355,
+    "invalid_rate": 0.0,
+    "tick_compliance": true,
+    "big": {
+      "n": 18,
+      "hallucinated": 0,
+      "rate": 0.0,
+      "unparseable": 0,
+      "p50_ms": 0.5028415088308975,
+      "p95_ms": 0.5032136158552021
+    }
+  },
+  "quality": {
+    "survival_ticks": 180,
+    "damage_taken": 150,
+    "action_diversity": 0.08888888888888889,
+    "big_orders": 17
+  },
+  "verdict": "COMPLIANT: p95=0.2ms (budget=500ms), invalid_rate=0.0%, big_hallucination_rate=0.0%"
+}
