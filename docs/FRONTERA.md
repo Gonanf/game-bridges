@@ -103,7 +103,7 @@ El desacople se basa en un **log append-only** de eventos inmutables (`event_id`
 4. **Inmutabilidad del estado**: el grande sólo añade propuestas de acción y eventos narrativos; nunca altera el estado del simulador directamente.
 5. **El vocabulario cerrado se impone con grammar GBNF, no con prompt**:
    - Medición verificada: sin gramática y con thinking habilitado, con `max_tokens=12`, los modelos chicos devuelven `content` vacío porque consumen todo el presupuesto en `reasoning_content`.
-   - Con gramática GBNF restringida a la regla `root ::= "accion1" | "accion2"` y `enable_thinking: false`, la latencia cae a **125 ms en MiniCPM5-1B** y la tasa de acciones ilegales es 0%.
+   - Con gramática GBNF restringida a la regla `root ::= "accion1" | "accion2"` y `enable_thinking: false`, la latencia cae a **125 ms en MiniCPM5-1B** con **GPU libre** (sin contención) y la tasa de acciones ilegales es 0%. Bajo contención (GPU use 93 %, otro `llama-server` en Vulkan0, VRAM 3,35/4,28 GB) la medición real del bench da **p50 458 ms y p95 999,4 ms** con 0,0 % de acciones ilegales, es decir **999 ms > tick de 500 ms**: con GPU compartida el chico **no cumple el tick**.
 
 ---
 
@@ -117,6 +117,8 @@ El desacople se basa en un **log append-only** de eventos inmutables (`event_id`
 | **Werewolf / Social deduction** | Por turno de votación | <= 300 ms (voto) | Vota al jugador más sospechoso según tabla previa o abstención |
 | **Costo de primera llamada (Arranque en frío)** | 2.000 ms – 6.800 ms (medido) | N/A | **Bloqueante**: requiere precarga obligatoria del modelo en GPU antes de iniciar la partida o fallback scripted durante los primeros 10-15 ticks |
 
+Los presupuestos de la tabla (200/400/500/300 ms) se sostienen **sólo con GPU exclusiva**; con GPU compartida el p95 medido es **999 ms**, así que el chico no cumple el tick de 500 ms y hace falta **GPU exclusiva para el modelo chico o subir el presupuesto a ~1 s** (y en ese caso aceptar que el chico deja de ser "reflejo por tick" en Minecraft, cuyo tick útil es 500 ms).
+
 ---
 
 ## 6. Anti-hack y calidad de juego
@@ -128,8 +130,16 @@ El summary monitorea explícitamente:
 - `action_diversity`: relación entre tipos de acciones ejecutadas y el total de decisiones. Si el chico entra en bucles de un solo verbo, la diversidad colapsa a 0.
 - `big_orders`: cuenta cuántas veces el grande intervino efectivamente con un `override`. Si el modelo grande no interviene o emite `null` permanentemente, `big_orders` es 0.
 - `damage_taken` y `survival_ticks`: miden el resultado objetivo de la partida. Si el chico no esquiva o no ataca, la vida llega a 0 rápidamente.
+- `unparseable`: cuenta cuántas respuestas del modelo grande rompieron formato y no pudieron ser parseadas como JSON válido (se mide y contabiliza separado de `hallucinated`).
 
 La métrica de éxito es la **efectividad de juego combinada**: supervivencia máxima con cumplimiento temporal estricto del chico y tasa de alucinación cero en el grande.
+
+### 6.1 El riesgo del grande no es alucinar, es no devolver JSON
+
+- En la medición de replay (24 ventanas, Sharp-MiniCPM5-2B) las alucinaciones de `refs` fueron **0/24 (0,0 %)**, pero **4/24 (16,7 %)** no devolvieron JSON parseable (`unparseable`).
+- **Conclusión de diseño**: el validador del grande **no puede asumir JSON bien formado**. Necesita **reintento acotado y/o gramática de forma (JSON schema/GBNF de salida)** para el grande, y un camino de degradación (ignorar la respuesta y quedarse con la última orden válida) cuando el parseo falla.
+- **`unparseable` se cuenta aparte de `hallucinated`**: alucinar = JSON válido citando `event_id` inexistentes; `unparseable` = no se pudo parsear. Mezclarlos esconde el problema real de protocolo detrás de una tasa de alucinación que da 0 %.
+- **Latencia del grande en esa corrida**: p50 25,2 s (25.179 ms), p95 32,0 s (32.018 ms) ⇒ confirma que el grande es asíncrono y no puede estar en el bucle de tick.
 
 ---
 
