@@ -20,10 +20,20 @@ Mediciones empíricas tomadas en el entorno local (4 GB VRAM Vulkan0):
 | grande Sharp-MiniCPM5-2B, mismo prompt, 27 tokens | **26,3 s** de pared (frío), JSON válido |
 | `Ornith-1.0-9B` | **no carga**: la raíz está al 99% y falla la descarga HF |
 
+### Resultados reales del bench (medidos)
+
+| corrida | configuración | resultado |
+|---|---|---|
+| chico, tiempo real | MiniCPM5-1B + GBNF + `enable_thinking=false`, 3 seeds × 120 ticks (360 decisiones), tick 500 ms | p50 458 ms, **p95 999,4 ms**, cold 15,8 s, invalid_rate 0,0 %, `tick_compliance=false`, action_diversity 0,028 |
+| grande, replay | Sharp-MiniCPM5-2B sobre 24 ventanas (`out/windows-subset.jsonl`) | **0/24 alucinados (0,0 %)**, **4/24 unparseable (16,7 %)**, p50 25,2 s, p95 32,0 s |
+
+**Condición de medición**: medido con **GPU compartida** (GPU use 93 %, otro `llama-server` en Vulkan0, VRAM 3,35/4,28 GB); el 125 ms de la tabla de arriba es con GPU libre, sin contención.
+
 ### Conclusiones de ingeniería
 1. **El vocabulario cerrado se impone con grammar GBNF, no con prompt**: si se pide al LLM generar texto libre en 12 tokens, los modelos modernos con thinking agotan el presupuesto en tokens de razonamiento o generan texto decorativo. Con gramática GBNF y `chat_template_kwargs={"enable_thinking":false}`, el modelo está obligado a emitir únicamente una acción legal en 1-2 tokens.
 2. **Penalidad de primera llamada**: la carga del modelo en VRAM toma entre 15× y 20× el tiempo de inferencia en régimen (2,0 s a 6,8 s en frío vs 125–330 ms en caliente).
 3. **Restricción de GPU (`--models-max 1`)**: cuando el servidor local corre con `--models-max 1`, alternar entre chico y grande en cada tick descargaría y recargaría pesos continuamente. Por este motivo, la ejecución dividida se desacopla grabando ventanas (`--record-windows`) y reproduciéndolas después (`--replay-windows`).
+4. **Fallo por forma vs. contenido en el grande**: el grande puede fallar por **forma** (16,7 % unparseable) más que por contenido (0 % alucinado) ⇒ el diseño necesita reintento/gramática de forma y `unparseable` se cuenta aparte de `hallucinated`.
 
 ---
 
